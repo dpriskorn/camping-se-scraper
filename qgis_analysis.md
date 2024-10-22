@@ -9,7 +9,7 @@ do a hub distance analysis osm->nearest official campsite hub with meters and fi
 I could not find a GUI way to do what I wanted (without resulting to manual mouse clicking and what is the fun in that) so I wrestled with chatgpt until I got some working code :)
 
 run this script in the python console to get the missing campsites (those where no osm camp site exist within 500m)
-
+```
 # Get the official campsite layer and OSM layer
 campsite_layer = QgsProject.instance().mapLayersByName('official')[0]
 osm_layer = QgsProject.instance().mapLayersByName('osm_points_within_500m')[0]
@@ -50,3 +50,4 @@ if selected_count > 0:
     print("New layer with unmatched campsites has been created and added to the project.")
 else:
     print("No unmatched campsites found.")
+```
