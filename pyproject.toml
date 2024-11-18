@@ -14,7 +14,7 @@ lxml = "^5.3.0"
 pydantic = "^2.9.2"
 geopandas = "^1.0.1"
 tqdm = "^4.66.5"
-aiohttp = "^3.10.10"
+aiohttp = "^3.10.11"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2"
