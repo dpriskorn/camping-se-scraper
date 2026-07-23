@@ -114,7 +114,8 @@ class CampingList(BaseModel):
                 self.sites.append(site)
 
         date_str = datetime.now().strftime("%b_%d_%Y")
-        self.export_to_geojson(f"output/camping_sites_{date_str}.geojson")
+        base = f"output/camping_sites_{date_str}"
+        self.export_to_geojson(f"{base}.geojson", f"{base}_conflicts.geojson")
 
     async def start(self):  # pragma: no cover
         await self.fetch_list_of_sites()
@@ -124,18 +125,44 @@ class CampingList(BaseModel):
         async with aiohttp.ClientSession() as session:
             await self.iterate_items(session, self.headers)
 
-    def export_to_geojson(self, filename: str):
-        dictionaries = []
+    def export_to_geojson(self, filename: str, conflicts_filename: str = None):
+        by_id: Dict[str, List[Site]] = {}
         for site in self.sites:
             site.generate_url()
-            dump = site.model_dump(exclude={"lat", "long"})
-            dictionaries.append(dump)
+            if site.drupal_id not in by_id:
+                by_id[site.drupal_id] = []
+            by_id[site.drupal_id].append(site)
 
-        gdf = gpd.GeoDataFrame(dictionaries, geometry=[Point(site.long, site.lat) for site in self.sites],
+        unique_sites = []
+        conflicts = []
+
+        for drupal_id, sites in by_id.items():
+            if len(sites) == 1:
+                unique_sites.append(sites[0])
+            else:
+                coords = {(s.lat, s.long) for s in sites}
+                if len(coords) == 1:
+                    unique_sites.append(sites[0])
+                else:
+                    conflicts.extend(sites)
+
+        unique_sites.sort(key=lambda s: s.drupal_id)
+        conflicts.sort(key=lambda s: s.drupal_id)
+
+        dictionaries = [s.model_dump(exclude={"lat", "long"}) for s in unique_sites]
+        gdf = gpd.GeoDataFrame(dictionaries,
+                               geometry=[Point(s.long, s.lat) for s in unique_sites],
                                crs="EPSG:4326")
-
         gdf.to_file(filename, driver='GeoJSON')
-        print(f"Exported {len(self.sites)} sites to {filename}")
+        print(f"Exported {len(unique_sites)} unique sites to {filename}")
+
+        if conflicts:
+            conf_dicts = [s.model_dump(exclude={"lat", "long"}) for s in conflicts]
+            conf_gdf = gpd.GeoDataFrame(conf_dicts,
+                                        geometry=[Point(s.long, s.lat) for s in conflicts],
+                                        crs="EPSG:4326")
+            conf_gdf.to_file(conflicts_filename, driver='GeoJSON')
+            print(f"Exported {len(conflicts)} conflict sites to {conflicts_filename}")
 
 
 if __name__ == "__main__":

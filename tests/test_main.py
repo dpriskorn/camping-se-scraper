@@ -65,7 +65,8 @@ class TestExportToGeoJson:
         camping_list.sites.append(site2)
 
         test_file = tmp_path / "test_output.geojson"
-        camping_list.export_to_geojson(str(test_file))
+        conflicts_file = tmp_path / "conflicts.geojson"
+        camping_list.export_to_geojson(str(test_file), str(conflicts_file))
 
         assert test_file.exists()
         content = test_file.read_text()
@@ -73,12 +74,71 @@ class TestExportToGeoJson:
         assert "Site Two" in content
         assert "https://camping.se/node/1" in content
         assert "https://camping.se/node/2" in content
+        assert not conflicts_file.exists()
 
     def test_export_to_geojson_with_no_sites(self, tmp_path):
         camping_list = CampingList()
         test_file = tmp_path / "empty_output.geojson"
-        camping_list.export_to_geojson(str(test_file))
+        conflicts_file = tmp_path / "conflicts.geojson"
+        camping_list.export_to_geojson(str(test_file), str(conflicts_file))
 
         assert test_file.exists()
         content = test_file.read_text()
         assert "FeatureCollection" in content
+        assert not conflicts_file.exists()
+
+    def test_export_to_geojson_deduplicates_by_drupal_id(self, tmp_path):
+        camping_list = CampingList()
+        site1 = Site(drupal_id="1", name="Site One", lat=56.5, long=12.3)
+        site2 = Site(drupal_id="1", name="Site One Duplicate", lat=56.5, long=12.3)
+        camping_list.sites.append(site1)
+        camping_list.sites.append(site2)
+
+        test_file = tmp_path / "dedup.geojson"
+        conflicts_file = tmp_path / "conflicts.geojson"
+        camping_list.export_to_geojson(str(test_file), str(conflicts_file))
+
+        assert test_file.exists()
+        content = test_file.read_text()
+        assert content.count("Site One") == 1
+        assert not conflicts_file.exists()
+
+    def test_export_to_geojson_sorts_by_drupal_id(self, tmp_path):
+        camping_list = CampingList()
+        site_b = Site(drupal_id="2", name="Site B", lat=57.6, long=13.4)
+        site_a = Site(drupal_id="1", name="Site A", lat=56.5, long=12.3)
+        site_c = Site(drupal_id="3", name="Site C", lat=58.7, long=14.5)
+        camping_list.sites.append(site_b)
+        camping_list.sites.append(site_a)
+        camping_list.sites.append(site_c)
+
+        test_file = tmp_path / "sorted.geojson"
+        conflicts_file = tmp_path / "conflicts.geojson"
+        camping_list.export_to_geojson(str(test_file), str(conflicts_file))
+
+        content = test_file.read_text()
+        pos_a = content.find("Site A")
+        pos_b = content.find("Site B")
+        pos_c = content.find("Site C")
+        assert pos_a < pos_b < pos_c
+
+    def test_export_to_geojson_conflicts_different_coordinates(self, tmp_path):
+        camping_list = CampingList()
+        site1 = Site(drupal_id="1", name="Site One", lat=56.5, long=12.3)
+        site2 = Site(drupal_id="1", name="Site One Moved", lat=57.5, long=13.3)
+        camping_list.sites.append(site1)
+        camping_list.sites.append(site2)
+
+        test_file = tmp_path / "unique.geojson"
+        conflicts_file = tmp_path / "conflicts.geojson"
+        camping_list.export_to_geojson(str(test_file), str(conflicts_file))
+
+        assert test_file.exists()
+        unique_content = test_file.read_text()
+        assert "FeatureCollection" in unique_content
+        assert "Site One" not in unique_content
+
+        assert conflicts_file.exists()
+        conflicts_content = conflicts_file.read_text()
+        assert "Site One" in conflicts_content
+        assert "Site One Moved" in conflicts_content
