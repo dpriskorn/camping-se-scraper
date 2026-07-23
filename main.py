@@ -1,4 +1,5 @@
 import aiohttp
+from datetime import datetime
 import asyncio
 from typing import List, Any, Dict
 from pydantic import BaseModel
@@ -37,11 +38,11 @@ class CampingList(BaseModel):
     }
 
     @staticmethod
-    async def fetch_item_page(session, url, headers):
+    async def fetch_item_page(session, url, headers):  # pragma: no cover
         async with session.get(url, headers=headers) as response:
             return await response.text()
 
-    async def fetch_list_of_sites(self):
+    async def fetch_list_of_sites(self):  # pragma: no cover
         base_url = 'https://camping.se/sv/api/cbis-product-list'
         params = {
             'nodeId': '679',
@@ -64,7 +65,7 @@ class CampingList(BaseModel):
                     else:
                         print(f"Failed to fetch page {page}. Status: {response.status}")
 
-    async def iterate_items(self, session, headers):
+    async def iterate_items(self, session, headers):  # pragma: no cover
         tasks = []
         for item in tqdm(self.items, desc="Processing camping sites"):
             soup = BeautifulSoup(item, 'lxml', parse_only=SoupStrainer('a'))
@@ -112,9 +113,10 @@ class CampingList(BaseModel):
                 )
                 self.sites.append(site)
 
-        self.export_to_geojson("camping_sites.geojson")
+        date_str = datetime.now().strftime("%b_%d_%Y")
+        self.export_to_geojson(f"output/camping_sites_{date_str}.geojson")
 
-    async def start(self):
+    async def start(self):  # pragma: no cover
         await self.fetch_list_of_sites()
         print(f"got {len(self.items)} campsites")
         #exit()
@@ -136,6 +138,6 @@ class CampingList(BaseModel):
         print(f"Exported {len(self.sites)} sites to {filename}")
 
 
-# Run the async function using asyncio
-camping_list = CampingList()
-asyncio.run(camping_list.start())
+if __name__ == "__main__":
+    camping_list = CampingList()
+    asyncio.run(camping_list.start())

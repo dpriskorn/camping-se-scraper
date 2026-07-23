@@ -1,4 +1,5 @@
 # Camping.se Scraper
+
 Note: this is an attempt to create open data for Swedish camping sites
 
 This project is an asynchronous scraper for gathering camping site data from [camping.se](https://camping.se). It fetches information about different camping sites, such as their name, coordinates, and favorite node ID, and exports the data to a GeoJSON file. The purpose is to do quality control in Wikidata and OpenStreetMap.
@@ -12,8 +13,8 @@ This project is an asynchronous scraper for gathering camping site data from [ca
 
 ## Requirements
 
-- Python 3.8+
-- [Poetry](https://python-poetry.org/) for dependency management
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv) for dependency management
 
 ## Installation
 
@@ -23,14 +24,9 @@ This project is an asynchronous scraper for gathering camping site data from [ca
    cd camping-site-scraper
    ```
 
-2. Install dependencies using Poetry:
+2. Install dependencies:
    ```bash
-   poetry install
-   ```
-
-3. Activate the virtual environment:
-   ```bash
-   poetry shell
+   just install
    ```
 
 ## Usage
@@ -38,10 +34,20 @@ This project is an asynchronous scraper for gathering camping site data from [ca
 Run the scraper with the following command:
 
 ```bash
-poetry run python main.py
+just scrape
 ```
 
-The scraper will start fetching data and export the results to `camping_sites.geojson`.
+The scraper will start fetching data and export the results to `output/camping_sites_<date>.geojson`.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `just scrape` | Run the scraper |
+| `just lint` | Run linting |
+| `just fix` | Fix linting issues |
+| `just test` | Run tests with coverage |
+| `just coverage` | Run tests with detailed coverage report |
 
 ## Exported Data
 
@@ -51,10 +57,6 @@ The exported data contains the following fields:
 - `website`: Generated URL of the site
 - Coordinates (`lat` and `long`) are stored in the GeoJSON geometry.
 
-## Development
+## License
 
-If you want to contribute to this project or modify it, install the dev dependencies:
-
-```bash
-poetry install --with dev
-```
+This project is licensed under [GPL-3.0-or-later](LICENSE).
